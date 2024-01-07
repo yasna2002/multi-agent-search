@@ -54,7 +54,7 @@ def better_Evaluation_Function(currentGameState: GameState):
         ghost_distance = manhattanDistance(pacman_position, ghost_position)
 
         if ghost_distance < 2:
-            closest_food_distance = float('inf')
+            return float('-inf')
 
     features = [1.0 / closest_food_distance, game_score, food_count, capsule_count]
 
@@ -78,24 +78,24 @@ class MultiAgentSearchAgent(Agent):
 class AIAgent(MultiAgentSearchAgent):
     def getAction(self, gameState: GameState):
 
-        best_eval, best_action = self.minimax(gameState, 5, float('-inf'), float('inf'), True)
+        best_eval, best_action = self.minimax(gameState, 5, float('-inf'), float('inf'), 0)
 
         chosen_action = random.choice(best_action)
 
         return chosen_action
 
-    def minimax(self, gameState: GameState, depth, alpha, beta, maximizing_player):
+    def minimax(self, gameState: GameState, depth, alpha, beta, player):
         if depth == 0 or gameState.isWin() or gameState.isLose():
             return better_Evaluation_Function(gameState), None
 
-        if maximizing_player:
+        if player == 0:
             max_eval = float('-inf')
             best_action = []
             for action in gameState.getLegalActions(0):
                 if action == "Stop":
                     continue
                 evaluation, _ = self.minimax(gameState.generateSuccessor(0, action),
-                                             depth, alpha, beta, False)
+                                             depth, alpha, beta, 1)
                 if evaluation > max_eval:
                     max_eval = evaluation
                     temp_list = []
@@ -110,9 +110,13 @@ class AIAgent(MultiAgentSearchAgent):
         else:
             min_eval = float('inf')
             best_action = None
-            for action in gameState.getLegalActions(1):
-                evaluation, _ = self.minimax(gameState.generateSuccessor(1, action),
-                                             depth - 1, alpha, beta, True)
+            next_player = player + 1
+            if next_player == gameState.getNumAgents():
+                next_player = 0
+                depth -= 1
+            for action in gameState.getLegalActions(player):
+                evaluation, _ = self.minimax(gameState.generateSuccessor(player, action),
+                                             depth, alpha, beta, next_player)
                 if evaluation < min_eval:
                     min_eval = evaluation
                     best_action = action
