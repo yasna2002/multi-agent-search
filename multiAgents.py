@@ -15,10 +15,10 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+import numpy as np
 
 from game import Agent
 from pacman import GameState
-import time
 
 
 def scoreEvaluationFunction(currentGameState: GameState):
@@ -31,9 +31,40 @@ def scoreEvaluationFunction(currentGameState: GameState):
     return currentGameState.getScore()
 
 
-
 def better_Evaluation_Function(currentGameState: GameState):
-   pass
+
+    pacman_position = currentGameState.getPacmanPosition()
+    ghost_positions = currentGameState.getGhostPositions()
+
+    capsule_count = len(currentGameState.getCapsules())
+    closest_food_distance = 1
+    food_list = currentGameState.getFood().asList()
+    food_count = len(food_list)
+
+    game_score = currentGameState.getScore()
+
+    if food_count > 0:
+        food_distances = []
+        for food_position in food_list:
+            food_distances.append(manhattanDistance(pacman_position, food_position))
+
+        closest_food_distance = min(food_distances)
+
+    for ghost_position in ghost_positions:
+        ghost_distance = manhattanDistance(pacman_position, ghost_position)
+
+        if ghost_distance < 2:
+            closest_food_distance = float('inf')
+
+    features = [1.0 / closest_food_distance, game_score, food_count, capsule_count]
+
+    weights = [10, 200, -100, -10]
+
+    features = np.array(features)
+    weights = np.array(weights)
+
+    return np.dot(features, weights)
+
 
 
 class MultiAgentSearchAgent(Agent):
@@ -46,42 +77,16 @@ class MultiAgentSearchAgent(Agent):
 
 class AIAgent(MultiAgentSearchAgent):
     def getAction(self, gameState: GameState):
-        """
-        Here are some method calls that might be useful when implementing minimax.
 
-        gameState.getLegalActions(agentIndex):
-        Returns a list of legal actions for an agent
-        agentIndex=0 means Pacman, ghosts are >= 1
-
-        gameState.generateSuccessor(agentIndex, action):
-        Returns the successor game state after an agent takes an action
-
-
-        gameState.getNumAgents():
-        Returns the total number of agents in the game
-
-        gameState.isWin():
-        Returns whether or not the game state is a winning state
-
-        gameState.isLose():
-        Returns whether or not the game state is a losing state
-        """
-
-        start = time.time()
         best_eval, best_action = self.minimax(gameState, 5, float('-inf'), float('inf'), True)
-        end = time.time()
-        print(end - start)
-        chosen_action = random.choice(best_action)
 
-        # better_Evaluation_Function(gameState)
+        chosen_action = random.choice(best_action)
 
         return chosen_action
 
-        # util.raiseNotDefined()
-
     def minimax(self, gameState: GameState, depth, alpha, beta, maximizing_player):
         if depth == 0 or gameState.isWin() or gameState.isLose():
-            return scoreEvaluationFunction(gameState), None
+            return better_Evaluation_Function(gameState), None
 
         if maximizing_player:
             max_eval = float('-inf')
